@@ -35,6 +35,12 @@ $ sh install.sh
 
 # Usage
 - Configure to use the palette of your choice by editing the `rfclr` bin file. Default location is `~/.local/bin/rfclr`.
+Default available palettes are:
+1. `rosepine`
+2. `catppuccin_mocha`
+3. `catppuccin_macchiato`
+4. `catppuccin_frappe`
+5. `catppuccin_latte`
 - launch it by executing `rofi -modi rfclr:rfclr -show rfclr`
 - To use a custom rofi theme launch it with this instead `rofi -modi rfclr:rfclr -show rfclr -theme <path to your theme file>`
 - Make sure to bind this command to any key preferred for quick access
