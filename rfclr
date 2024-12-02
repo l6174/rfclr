@@ -1,4 +1,5 @@
 #!/bin/bash
+# Change your palette file here
 theme="$HOME/.config/rfclr/palettes/catppuccin_mocha.txt"
 tmpfile="$HOME/.cache/rfclr.tmp"
 echo -en "\x00markup-rows\x1ftrue\n"
