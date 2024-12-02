@@ -1,0 +1,86 @@
+#!/bin/bash
+theme="$HOME/.config/rfclr/palettes/catppuccin_mocha.txt"
+tmpfile="$HOME/.cache/rfclr.tmp"
+echo -en "\x00markup-rows\x1ftrue\n"
+
+copy_to_clipboard() {
+    if [[ -n "$WAYLAND_DISPLAY" ]]; then
+        echo -n "$1" | wl-copy
+    elif command -v xclip &> /dev/null; then
+        echo -n "$1" | xclip -selection clipboard
+    elif command -v xsel &> /dev/null; then
+        echo -n "$1" | xsel --clipboard --input
+    else
+        echo "Error: No clipboard tool found (wl-copy, xclip, or xsel)." >&2
+        exit 1
+    fi
+}
+if [[ $# -eq 0 ]]; then
+    awk -F': ' '{printf "<span foreground=\"%s\">●</span> %s\n", $2, $1}' "$theme"
+    exit 0
+fi
+
+LINE="${@}"
+
+if [[ $LINE == "HEX" ]]; then
+    COLOR_NAME=$(cat "$tmpfile" | sed 's/^[[:space:]]*<span[^>]*>●<\/span>[[:space:]]*//')
+
+    HEX=$(awk -F': ' -v color="$COLOR_NAME" \
+        'BEGIN {IGNORECASE = 1} $1 == color {print $2}' "$theme")
+    copy_to_clipboard "$HEX"  # Copy HEX to clipboard
+    rm -f "$tmpfile"  # Remove tmpfile
+    exit 0
+elif [[ $LINE == "RGB" ]]; then
+    COLOR_NAME=$(cat "$tmpfile" | sed 's/^[[:space:]]*<span[^>]*>●<\/span>[[:space:]]*//')
+
+    HEX=$(awk -F': ' -v color="$COLOR_NAME" \
+        'BEGIN {IGNORECASE = 1} $1 == color {print $2}' "$theme")
+    R=$(printf "%d" 0x${HEX:1:2})
+    G=$(printf "%d" 0x${HEX:3:2})
+    B=$(printf "%d" 0x${HEX:5:2})
+    RGB="rgb($R, $G, $B)"
+    copy_to_clipboard "$RGB"  # Copy RGB to clipboard
+    rm -f "$tmpfile"  # Remove tmpfile
+    exit 0
+elif [[ $LINE == "HSL" ]]; then
+    COLOR_NAME=$(cat "$tmpfile" | sed 's/^[[:space:]]*<span[^>]*>●<\/span>[[:space:]]*//')
+    HEX=$(awk -F': ' -v color="$COLOR_NAME" \
+        'BEGIN {IGNORECASE = 1} $1 == color {print $2}' "$theme")
+    R=$(printf "%d" 0x${HEX:1:2})
+    G=$(printf "%d" 0x${HEX:3:2})
+    B=$(printf "%d" 0x${HEX:5:2})
+
+    R=$(echo "scale=2; $R/255" | bc)
+    G=$(echo "scale=2; $G/255" | bc)
+    B=$(echo "scale=2; $B/255" | bc)
+
+    MAX=$(echo "$R $G $B" | tr ' ' '\n' | sort -nr | head -1)
+    MIN=$(echo "$R $G $B" | tr ' ' '\n' | sort -n | head -1)
+    L=$(echo "scale=2; ($MAX + $MIN) / 2" | bc)
+    if [[ "$MAX" == "$MIN" ]]; then
+        H=0
+        S=0
+    else
+        D=$(echo "scale=2; $MAX - $MIN" | bc)
+        S=$(echo "scale=2; $D / (1 - ((2 * $L - 1)^2))" | bc)
+        if [[ "$MAX" == "$R" ]]; then
+            H=$(echo "scale=2; (60 * (($G - $B) / $D) + 360) % 360" | bc)
+        elif [[ "$MAX" == "$G" ]]; then
+            H=$(echo "scale=2; (60 * (($B - $R) / $D) + 120)" | bc)
+        else
+            H=$(echo "scale=2; (60 * (($R - $G) / $D) + 240)" | bc)
+        fi
+    fi
+
+    HSL="hsl(${H%.*}, $S, $L)"
+    copy_to_clipboard "$HSL"  # Copy HSL to clipboard
+    exit 0
+else
+    # Store the selected color name for subsequent options
+    echo "$LINE" > "$tmpfile"
+    echo "HEX"
+    echo "RGB"
+    echo "HSL"
+    exit 0
+fi
+
